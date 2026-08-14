@@ -104,8 +104,8 @@
   .btn.blue{background:var(--done);color:#000}
   .close-x{background:transparent;border:0;color:var(--muted);font-size:22px;line-height:1}
 
-  /* disclaimer — only shown on the customer copy (body.customer) */
-  .disclaimer{display:none;margin:0;padding:11px 20px;background:#3a2a00;border-bottom:1px solid #5a4300;color:#ffd98a;font-size:12.5px;line-height:1.5}
+  /* disclaimer — shown here as a preview, and on the customer copy */
+  .disclaimer{display:block;margin:0;padding:11px 20px;background:#3a2a00;border-bottom:1px solid #5a4300;color:#ffd98a;font-size:12.5px;line-height:1.5}
   .disclaimer b{color:var(--accent)}
   body.customer .disclaimer{display:block}
   body.customer .edit-btn{display:none}
@@ -278,7 +278,7 @@ L.control.layers(
 const routeLayer=L.layerGroup().addTo(map);
 const legend=L.control({position:'bottomright'});
 legend.onAdd=function(){const d=L.DomUtil.create('div','legend');
-  d.innerHTML=`<i style="background:${COL.done}"></i>Completed<br><i style="background:${COL.current}"></i>Current position<br><i style="background:${COL.upcoming}"></i>Upcoming<br><span style="color:${COL.done};font-size:15px;margin-right:4px">&#9670;</span>Major hub (larger dot)`;return d;};
+  d.innerHTML=`<i style="background:${COL.done}"></i>Completed<br><i style="background:${COL.current}"></i>Current position<br><i style="background:${COL.upcoming}"></i>Upcoming<br><span style="color:${COL.done};font-size:15px;margin-right:4px">&#9670;</span>Major hub`;return d;};
 legend.addTo(map);
 
 /* ---------- render everything from DATA ---------- */
@@ -309,10 +309,15 @@ function renderAll(fit=true){
   stops.forEach(s=>{
     const col=s.status==='current'?COL.current:(s.status==='done'?COL.done:COL.upcoming);
     let r=s.status==='current'?9:6;
-    if(s.major)r+=5;                                  // major hubs get a bigger dot
-    if(s.major)                                       // + an emphasis ring
-      L.circleMarker(s.coords,{radius:r+4,color:col,weight:2,opacity:.6,fill:false}).addTo(routeLayer);
-    const m=L.circleMarker(s.coords,{radius:r,color:'#0a0a0a',weight:s.major?3:2,fillColor:col,fillOpacity:1}).addTo(routeLayer);
+    let m;
+    if(s.major){                                      // major hubs render as a diamond
+      const side=r+8, box=(r+8)*2;
+      const html=`<div style="width:${box}px;height:${box}px;display:flex;align-items:center;justify-content:center">`+
+        `<div style="width:${side}px;height:${side}px;background:${col};border:2px solid #0a0a0a;transform:rotate(45deg);box-shadow:0 0 0 2px rgba(255,255,255,.18)"></div></div>`;
+      m=L.marker(s.coords,{icon:L.divIcon({className:'',html,iconSize:[box,box],iconAnchor:[box/2,box/2]}),zIndexOffset:200}).addTo(routeLayer);
+    }else{
+      m=L.circleMarker(s.coords,{radius:r,color:'#0a0a0a',weight:2,fillColor:col,fillOpacity:1}).addTo(routeLayer);
+    }
     m.bindPopup(`<b>${s.name}</b>${s.major?' &#9670; <b>Major hub</b>':''}<br>${s.type}<br>Sched: ${s.eta}<br>Act/Est: ${s.act}${s.note?'<br><i>'+s.note+'</i>':''}`);
     if(s.status==='current')
       L.marker(s.coords,{icon:L.divIcon({className:'',html:'🚆',iconSize:[26,26],iconAnchor:[13,13]})})
